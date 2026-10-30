@@ -59,3 +59,15 @@ export function updateRecord(records, updatedRecord) {
 export function deleteRecord(records, recordId) {
   return records.filter((record) => record.id !== recordId)
 }
+
+export function clearRecords() {
+  if (typeof window === 'undefined' || !window.localStorage) return false
+
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+    return true
+  } catch (error) {
+    console.error('Unable to clear journal entries.', error)
+    return false
+  }
+}

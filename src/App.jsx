@@ -4,18 +4,22 @@ import {
   Download,
   FileText,
   History,
+  Info,
   LayoutDashboard,
   Menu,
   Mic,
+  Moon,
   NotebookPen,
   Plus,
   RefreshCw,
   Search,
   Settings,
+  Sun,
+  Trash2,
   X,
 } from 'lucide-react'
 import './App.css'
-import { deleteRecord, loadRecords, saveRecords, updateRecord } from './storage'
+import { clearRecords, deleteRecord, loadRecords, saveRecords, updateRecord } from './storage'
 import { downloadMarkdown, downloadRecordsJson } from './exportMarkdown'
 
 const initialRecords = [
@@ -106,10 +110,19 @@ function App() {
   const [detailRecord, setDetailRecord] = useState(null)
   const [historySearch, setHistorySearch] = useState('')
   const [historyCategory, setHistoryCategory] = useState('All')
+  const [theme, setTheme] = useState(() =>
+    typeof window !== 'undefined' ? window.localStorage.getItem('labledger_theme') || 'light' : 'light',
+  )
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
+  const [appError, setAppError] = useState('')
 
   useEffect(() => {
     saveRecords(records)
   }, [records])
+
+  useEffect(() => {
+    window.localStorage.setItem('labledger_theme', theme)
+  }, [theme])
 
   const selectPage = (page) => {
     setActivePage(page)
@@ -139,6 +152,7 @@ function App() {
   })
 
   const openEntryModal = () => {
+    setAppError('')
     setEntryModalOpen(true)
     setGeneratedRecord(null)
     setEditingRecordId(null)
@@ -150,6 +164,7 @@ function App() {
     setEntryCategory('')
     setGeneratedRecord(null)
     setEditingRecordId(null)
+    setAppError('')
   }
 
   const buildStructuredRecord = (text, category) => {
@@ -178,7 +193,10 @@ function App() {
 
   const generateRecord = (event) => {
     event.preventDefault()
-    if (!description.trim() || !entryCategory.trim()) return
+    if (!description.trim()) {
+      setAppError('Add a work description before generating a record.')
+      return
+    }
 
     setGeneratedRecord(buildStructuredRecord(description.trim(), entryCategory.trim()))
   }
@@ -209,9 +227,21 @@ function App() {
     setRecords((current) => deleteRecord(current, recordId))
   }
 
+  const clearAllRecords = () => {
+    if (!clearRecords()) {
+      setAppError('Entries could not be cleared. Check browser storage permissions and try again.')
+      return
+    }
+    setRecords([])
+    setClearConfirmOpen(false)
+  }
+
   const saveEntry = (event) => {
     event.preventDefault()
-    if (!generatedRecord?.title.trim() || !generatedRecord?.category.trim() || !generatedRecord?.steps.trim()) return
+    if (!generatedRecord?.title.trim() || !generatedRecord?.category.trim() || !generatedRecord?.steps.trim()) {
+      setAppError('Title, category, and tasks are required before saving.')
+      return
+    }
 
     const record = {
       id: editingRecordId || `rec-${Date.now()}`,
@@ -237,7 +267,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell theme-${theme}`}>
       {sidebarOpen && (
         <button
           className="sidebar-backdrop"
@@ -313,6 +343,15 @@ function App() {
         </header>
 
         <main className="content-area" aria-label={`${activePage} content`}>
+          {appError && (
+            <div className="app-alert" role="alert">
+              <Info size={16} />
+              <span>{appError}</span>
+              <button type="button" aria-label="Dismiss message" onClick={() => setAppError('')}>
+                <X size={15} />
+              </button>
+            </div>
+          )}
           {activePage === 'Dashboard' && (
             <section className="page-section dashboard">
               <div className="dashboard-welcome">
@@ -420,24 +459,51 @@ function App() {
             <section className="page-section settings-page">
               <div className="page-intro">
                 <h2>Settings</h2>
-                <p>Manage your journal preferences.</p>
+                <p>Manage your journal preferences and saved data.</p>
               </div>
               <div className="settings-card card">
                 <div className="setting-row">
                   <div>
-                    <strong>Voice recognition input</strong>
-                    <p>Use voice-first logging for practical work notes.</p>
+                    <strong>Appearance</strong>
+                    <p>Choose the theme that feels comfortable for your workflow.</p>
                   </div>
-                  <span className="setting-status">Active</span>
+                  <div className="theme-switcher" role="group" aria-label="Theme">
+                    <button
+                      className={theme === 'light' ? 'theme-option-active' : ''}
+                      type="button"
+                      onClick={() => setTheme('light')}
+                    >
+                      <Sun size={14} /> Light
+                    </button>
+                    <button
+                      className={theme === 'dark' ? 'theme-option-active' : ''}
+                      type="button"
+                      onClick={() => setTheme('dark')}
+                    >
+                      <Moon size={14} /> Dark
+                    </button>
+                  </div>
+                </div>
+                <div className="setting-row">
+                  <div>
+                    <strong>LabLedger</strong>
+                    <p>Practical work journal for capturing tasks, commands, errors, solutions, and learning outcomes.</p>
+                  </div>
+                  <span className="app-version">v1.0</span>
                 </div>
                 <div className="setting-row">
                   <div>
                     <strong>Local journal data</strong>
-                    <p>Your entries are currently stored in this session.</p>
+                    <p>{records.length} {records.length === 1 ? 'entry is' : 'entries are'} saved on this device.</p>
                   </div>
-                  <button className="secondary-button" type="button" onClick={() => setRecords(initialRecords)}>
-                    Restore sample data
-                  </button>
+                  <div className="setting-actions">
+                    <button className="secondary-button" type="button" onClick={() => setRecords(initialRecords)}>
+                      Restore samples
+                    </button>
+                    <button className="danger-button" type="button" onClick={() => setClearConfirmOpen(true)}>
+                      <Trash2 size={14} /> Clear data
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
@@ -460,6 +526,7 @@ function App() {
 
             {!generatedRecord ? (
               <form className="modal-form" onSubmit={generateRecord}>
+                {appError && <p className="modal-error" role="alert">{appError}</p>}
                 <label>
                   Work description
                   <span className="field-hint">Speak with your dictation tool or type what you built, the commands used, errors, fixes, and what you learned.</span>
@@ -481,6 +548,7 @@ function App() {
               </form>
             ) : (
               <form className="modal-form" onSubmit={saveEntry}>
+                {appError && <p className="modal-error" role="alert">{appError}</p>}
                 <div className="structured-record">
                   <label>
                     Title
@@ -603,6 +671,7 @@ function App() {
                         <p>{detailRecord.learnings}</p>
                       </div>
                     )}
+
                     <div className="detail-actions">
                       <button className="secondary-button" type="button" onClick={() => setDetailRecord(null)}>Close</button>
                       <button className="secondary-button" type="button" onClick={() => downloadMarkdown(detailRecord)}>
@@ -620,6 +689,20 @@ function App() {
                   </div>
                 </div>
               </div>
+      )}
+
+      {clearConfirmOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="clear-data-title">
+            <div className="confirm-icon"><Trash2 size={20} /></div>
+            <h2 id="clear-data-title">Clear all journal data?</h2>
+            <p>This permanently removes all saved entries from this device. This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button className="secondary-button" type="button" onClick={() => setClearConfirmOpen(false)}>Cancel</button>
+              <button className="danger-button danger-button-filled" type="button" onClick={clearAllRecords}>Clear all data</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -195,6 +195,34 @@
   background: #f9fafb;
 }
 
+.app-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 1024px;
+  margin: 0 auto 16px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  background: #fef2f2;
+  font-size: 12px;
+}
+
+.app-alert span {
+  flex: 1;
+}
+
+.app-alert button {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
 .page-section {
   width: min(100%, 1024px);
   margin: 0 auto;
@@ -559,6 +587,17 @@
   line-height: 1.4;
 }
 
+.modal-error {
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  background: #fef2f2;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .dictation-row {
   display: flex;
   align-items: center;
@@ -824,6 +863,102 @@
   background: #f9fafb;
 }
 
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.danger-button:hover,
+.danger-button-filled {
+  color: #fff;
+  background: #dc2626;
+}
+
+.theme-switcher,
+.setting-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-switcher {
+  padding: 3px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.theme-switcher button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 6px;
+  color: #6b7280;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.theme-switcher button:hover,
+.theme-switcher .theme-option-active {
+  color: var(--brand-700);
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.app-version {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.confirm-modal {
+  width: min(100%, 400px);
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 20px 40px rgb(17 24 39 / 18%);
+}
+
+.confirm-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.confirm-modal h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 17px;
+}
+
+.confirm-modal p {
+  margin: 8px 0 20px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.confirm-modal .modal-actions {
+  padding-top: 0;
+}
+
 .sidebar-backdrop {
   display: none;
 }
@@ -864,11 +999,27 @@
   }
 
   .content-area {
-    padding: 20px 16px;
+    padding: 16px 12px 24px;
   }
 
   .search-box {
     display: none;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .voice-button {
+    padding: 8px 10px;
+  }
+
+  .dashboard-welcome h2 {
+    font-size: 21px;
+  }
+
+  .record-card {
+    padding: 16px;
   }
 }
 
@@ -955,8 +1106,173 @@
     gap: 12px;
   }
 
+  .setting-actions,
+  .theme-switcher {
+    width: 100%;
+  }
+
+  .setting-actions > * {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .theme-switcher button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .confirm-modal {
+    padding: 20px;
+  }
+
   .form-actions,
   .form-actions .new-entry-button {
     width: 100%;
   }
+}
+
+.theme-dark {
+  color: #d1d5db;
+  background: #111827;
+}
+
+.theme-dark .sidebar,
+.theme-dark .top-header,
+.theme-dark .records-container,
+.theme-dark .card,
+.theme-dark .entry-modal,
+.theme-dark .detail-modal,
+.theme-dark .confirm-modal {
+  border-color: #374151;
+  background: #1f2937;
+}
+
+.theme-dark .sidebar {
+  border-right-color: #374151;
+}
+
+.theme-dark .sidebar-logo,
+.theme-dark .top-header {
+  border-color: #374151;
+}
+
+.theme-dark .content-area,
+.theme-dark .app-shell {
+  background: #111827;
+}
+
+.theme-dark .nav-item {
+  color: #d1d5db;
+}
+
+.theme-dark .nav-item:hover {
+  color: #fff;
+  background: #374151;
+}
+
+.theme-dark .nav-item-active {
+  color: #a5b4fc;
+  background: #312e81;
+}
+
+.theme-dark .header-title h1,
+.theme-dark .dashboard-welcome h2,
+.theme-dark .page-intro h2,
+.theme-dark .record-heading h3,
+.theme-dark .modal-header h2,
+.theme-dark .detail-modal h2,
+.theme-dark .confirm-modal h2,
+.theme-dark .setting-row strong {
+  color: #f9fafb;
+}
+
+.theme-dark .dashboard-welcome,
+.theme-dark .record-card,
+.theme-dark .setting-row,
+.theme-dark .modal-header {
+  border-color: #374151;
+}
+
+.theme-dark .dashboard-welcome p,
+.theme-dark .page-intro p,
+.theme-dark .record-content p,
+.theme-dark .modal-header p,
+.theme-dark .setting-row p,
+.theme-dark .confirm-modal p {
+  color: #9ca3af;
+}
+
+.theme-dark .search-box,
+.theme-dark .history-search,
+.theme-dark .work-actions select,
+.theme-dark .history-toolbar select,
+.theme-dark .secondary-button,
+.theme-dark .danger-button,
+.theme-dark .theme-switcher,
+.theme-dark .modal-form input,
+.theme-dark .modal-form textarea,
+.theme-dark .modal-form select {
+  border-color: #4b5563;
+  color: #e5e7eb;
+  background: #111827;
+}
+
+.theme-dark .search-box input,
+.theme-dark .history-search input,
+.theme-dark .modal-form input,
+.theme-dark .modal-form textarea,
+.theme-dark .modal-form select {
+  color: #e5e7eb;
+}
+
+.theme-dark .theme-switcher button,
+.theme-dark .secondary-button {
+  color: #d1d5db;
+}
+
+.theme-dark .theme-switcher button:hover,
+.theme-dark .theme-switcher .theme-option-active {
+  color: #c7d2fe;
+  background: #374151;
+}
+
+.theme-dark .record-icon,
+.theme-dark .empty-icon {
+  color: #9ca3af;
+  background: #374151;
+}
+
+.theme-dark .detail-block {
+  border-color: #374151;
+  background: #111827;
+}
+
+.theme-dark .detail-block p {
+  color: #d1d5db;
+}
+
+.theme-dark .detail-learnings {
+  border-color: #4338ca;
+  background: rgb(49 46 129 / 35%);
+}
+
+.theme-dark .modal-close {
+  color: #9ca3af;
+}
+
+.theme-dark .modal-close:hover {
+  color: #fff;
+  background: #374151;
+}
+
+.theme-dark .work-heading,
+.theme-dark .history-count,
+.theme-dark .record-meta,
+.theme-dark .app-version {
+  color: #9ca3af;
+}
+
+.theme-dark .work-heading strong {
+  color: #e5e7eb;
+  background: #374151;
 }
