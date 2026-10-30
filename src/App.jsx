@@ -44,7 +44,6 @@ const initialRecords = [
 
 const navigation = [
   { label: 'Dashboard', icon: LayoutDashboard },
-  { label: 'New Entry', icon: Mic },
   { label: 'History', icon: History },
   { label: 'Settings', icon: Settings },
 ]
@@ -91,7 +90,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [category, setCategory] = useState('All')
   const [emptyState, setEmptyState] = useState(false)
-  const [entry, setEntry] = useState({ title: '', category: '', steps: '' })
+  const [entryModalOpen, setEntryModalOpen] = useState(false)
+  const [description, setDescription] = useState('')
+  const [entryCategory, setEntryCategory] = useState('')
+  const [generatedRecord, setGeneratedRecord] = useState(null)
 
   const selectPage = (page) => {
     setActivePage(page)
@@ -109,27 +111,51 @@ function App() {
     return matchesSearch && matchesCategory && !emptyState
   })
 
-  const updateEntry = (field, value) => {
-    setEntry((current) => ({ ...current, [field]: value }))
+  const openEntryModal = () => {
+    setEntryModalOpen(true)
+    setGeneratedRecord(null)
+  }
+
+  const cancelEntry = () => {
+    setEntryModalOpen(false)
+    setDescription('')
+    setEntryCategory('')
+    setGeneratedRecord(null)
+  }
+
+  const generateRecord = (event) => {
+    event.preventDefault()
+    if (!description.trim() || !entryCategory.trim()) return
+
+    setGeneratedRecord({
+      title: description.trim().split(/[.!?]/)[0].slice(0, 60) || 'Practical Work Entry',
+      category: entryCategory.trim(),
+      status: 'Completed',
+      steps: description.trim(),
+      learnings: 'Add the key learning or takeaway from this work.',
+    })
+  }
+
+  const updateGeneratedRecord = (field, value) => {
+    setGeneratedRecord((current) => ({ ...current, [field]: value }))
   }
 
   const saveEntry = (event) => {
     event.preventDefault()
-    if (!entry.title.trim() || !entry.category.trim() || !entry.steps.trim()) return
+    if (!generatedRecord?.title.trim() || !generatedRecord?.category.trim() || !generatedRecord?.steps.trim()) return
 
     setRecords((current) => [
       {
         id: `rec-${Date.now()}`,
-        title: entry.title.trim(),
-        category: entry.category.trim(),
+        title: generatedRecord.title.trim(),
+        category: generatedRecord.category.trim(),
         date: 'Oct 30, 2026',
-        status: 'Completed',
-        steps: entry.steps.trim(),
+        status: generatedRecord.status,
+        steps: generatedRecord.steps.trim(),
       },
       ...current,
     ])
-    setEntry({ title: '', category: '', steps: '' })
-    setActivePage('History')
+    cancelEntry()
   }
 
   return (
@@ -201,7 +227,7 @@ function App() {
                 onChange={(event) => setSearchQuery(event.target.value)}
               />
             </label>
-            <button className="voice-button" type="button" onClick={() => selectPage('New Entry')}>
+            <button className="voice-button" type="button" onClick={openEntryModal}>
               <Mic size={15} />
               <span>Voice Log</span>
             </button>
@@ -216,7 +242,7 @@ function App() {
                   <h2>Good morning, welcome back.</h2>
                   <p>Keep track of what you&apos;ve learned and built.</p>
                 </div>
-                <button className="new-entry-button" type="button" onClick={() => selectPage('New Entry')}>
+                <button className="new-entry-button" type="button" onClick={openEntryModal}>
                   <Plus size={16} />
                   <span>New Entry</span>
                 </button>
@@ -264,53 +290,6 @@ function App() {
             </section>
           )}
 
-          {activePage === 'New Entry' && (
-            <section className="page-section form-page">
-              <div className="page-intro">
-                <h2>Record practical work</h2>
-                <p>Add a short note about what you built, configured, or learned.</p>
-              </div>
-              <form className="entry-form card" onSubmit={saveEntry}>
-                <label>
-                  Entry title
-                  <input
-                    type="text"
-                    placeholder="e.g. Kubernetes Cluster Deployment"
-                    value={entry.title}
-                    onChange={(event) => updateEntry('title', event.target.value)}
-                    required
-                  />
-                </label>
-                <label>
-                  Category
-                  <input
-                    type="text"
-                    placeholder="e.g. DevOps, Git, AWS"
-                    value={entry.category}
-                    onChange={(event) => updateEntry('category', event.target.value)}
-                    required
-                  />
-                </label>
-                <label>
-                  Steps and observations
-                  <textarea
-                    rows="5"
-                    placeholder="Summary of practical steps performed..."
-                    value={entry.steps}
-                    onChange={(event) => updateEntry('steps', event.target.value)}
-                    required
-                  />
-                </label>
-                <div className="form-actions">
-                  <button className="new-entry-button" type="submit">
-                    <Check size={16} />
-                    <span>Save Journal Entry</span>
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
-
           {activePage === 'History' && (
             <section className="page-section history-page">
               <div className="page-intro">
@@ -354,8 +333,117 @@ function App() {
           )}
         </main>
       </div>
+
+      {entryModalOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+            <div className="modal-header">
+              <div>
+                <h2 id="entry-modal-title">Create New Entry</h2>
+                <p>{generatedRecord ? 'Edit the generated record before saving.' : 'Describe the practical work you completed.'}</p>
+              </div>
+              <button className="modal-close" type="button" aria-label="Close" onClick={cancelEntry}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {!generatedRecord ? (
+              <form className="modal-form" onSubmit={generateRecord}>
+                <label>
+                  Work description
+                  <textarea
+                    rows="6"
+                    placeholder="Describe what you built, configured, or debugged..."
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Category
+                  <input
+                    type="text"
+                    placeholder="e.g. Git, Linux, AWS"
+                    value={entryCategory}
+                    onChange={(event) => setEntryCategory(event.target.value)}
+                    required
+                  />
+                </label>
+                <div className="modal-actions">
+                  <button className="secondary-button" type="button" onClick={cancelEntry}>Cancel</button>
+                  <button className="new-entry-button" type="submit">
+                    <SparkleIcon />
+                    <span>Generate Record</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form className="modal-form" onSubmit={saveEntry}>
+                <div className="structured-record">
+                  <label>
+                    Title
+                    <input
+                      type="text"
+                      value={generatedRecord.title}
+                      onChange={(event) => updateGeneratedRecord('title', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Category
+                    <input
+                      type="text"
+                      value={generatedRecord.category}
+                      onChange={(event) => updateGeneratedRecord('category', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Status
+                    <select
+                      value={generatedRecord.status}
+                      onChange={(event) => updateGeneratedRecord('status', event.target.value)}
+                    >
+                      <option>Completed</option>
+                      <option>In Progress</option>
+                    </select>
+                  </label>
+                  <label>
+                    Steps and observations
+                    <textarea
+                      rows="4"
+                      value={generatedRecord.steps}
+                      onChange={(event) => updateGeneratedRecord('steps', event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Key learnings
+                    <textarea
+                      rows="3"
+                      value={generatedRecord.learnings}
+                      onChange={(event) => updateGeneratedRecord('learnings', event.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="modal-actions">
+                  <button className="secondary-button" type="button" onClick={cancelEntry}>Cancel</button>
+                  <button className="new-entry-button" type="submit">
+                    <Check size={16} />
+                    <span>Save Entry</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+function SparkleIcon() {
+  return <Plus size={16} />
 }
 
 export default App

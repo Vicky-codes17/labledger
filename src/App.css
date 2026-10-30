@@ -456,13 +456,13 @@
   line-height: 1.5;
 }
 
-.entry-form {
+.modal-form {
   display: grid;
   gap: 18px;
   padding: 24px;
 }
 
-.entry-form label {
+.modal-form label {
   display: grid;
   gap: 6px;
   color: #374151;
@@ -470,8 +470,9 @@
   font-weight: 500;
 }
 
-.entry-form input,
-.entry-form textarea {
+.modal-form input,
+.modal-form textarea,
+.modal-form select {
   width: 100%;
   padding: 9px 10px;
   border: 1px solid #e5e7eb;
@@ -483,16 +484,82 @@
   resize: vertical;
 }
 
-.entry-form input:focus,
-.entry-form textarea:focus {
+.modal-form input:focus,
+.modal-form textarea:focus,
+.modal-form select:focus {
   border-color: var(--brand-600);
   box-shadow: 0 0 0 2px var(--brand-100);
 }
 
-.form-actions {
+.modal-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  padding-top: 4px;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(17 24 39 / 50%);
+}
+
+.entry-modal {
+  width: min(100%, 560px);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 20px 40px rgb(17 24 39 / 18%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-header p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.modal-close {
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 0;
+  border-radius: 6px;
+  color: #9ca3af;
+  background: transparent;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.structured-record {
+  display: grid;
+  gap: 16px;
 }
 
 .settings-card {
@@ -643,7 +710,11 @@
     padding: 8px;
   }
 
-  .entry-form {
+  .modal-form {
+    padding: 16px;
+  }
+
+  .modal-header {
     padding: 16px;
   }
 
