@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Check,
   FileText,
@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import './App.css'
+import { deleteRecord, loadRecords, saveRecords, updateRecord } from './storage'
 
 const initialRecords = [
   {
@@ -48,7 +49,7 @@ const navigation = [
   { label: 'Settings', icon: Settings },
 ]
 
-function RecordList({ records, emptyMessage }) {
+function RecordList({ records, emptyMessage, onEdit, onDelete }) {
   if (records.length === 0) {
     return (
       <div className="empty-state">
@@ -77,6 +78,10 @@ function RecordList({ records, emptyMessage }) {
         <div className="record-meta">
           <span>{record.category}</span>
           <span>{record.date}</span>
+          <div className="record-actions">
+            <button type="button" onClick={() => onEdit(record)}>Edit</button>
+            <button type="button" onClick={() => onDelete(record.id)}>Delete</button>
+          </div>
         </div>
       </div>
     </article>
@@ -86,7 +91,7 @@ function RecordList({ records, emptyMessage }) {
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activePage, setActivePage] = useState('Dashboard')
-  const [records, setRecords] = useState(initialRecords)
+  const [records, setRecords] = useState(() => loadRecords(initialRecords))
   const [searchQuery, setSearchQuery] = useState('')
   const [category, setCategory] = useState('All')
   const [emptyState, setEmptyState] = useState(false)
@@ -94,6 +99,11 @@ function App() {
   const [description, setDescription] = useState('')
   const [entryCategory, setEntryCategory] = useState('')
   const [generatedRecord, setGeneratedRecord] = useState(null)
+  const [editingRecordId, setEditingRecordId] = useState(null)
+
+  useEffect(() => {
+    saveRecords(records)
+  }, [records])
 
   const selectPage = (page) => {
     setActivePage(page)
@@ -114,6 +124,7 @@ function App() {
   const openEntryModal = () => {
     setEntryModalOpen(true)
     setGeneratedRecord(null)
+    setEditingRecordId(null)
   }
 
   const cancelEntry = () => {
@@ -121,6 +132,7 @@ function App() {
     setDescription('')
     setEntryCategory('')
     setGeneratedRecord(null)
+    setEditingRecordId(null)
   }
 
   const generateRecord = (event) => {
@@ -140,21 +152,41 @@ function App() {
     setGeneratedRecord((current) => ({ ...current, [field]: value }))
   }
 
+  const editRecord = (record) => {
+    setGeneratedRecord({
+      title: record.title,
+      category: record.category,
+      status: record.status,
+      steps: record.steps,
+      learnings: record.learnings || '',
+    })
+    setEditingRecordId(record.id)
+    setEntryModalOpen(true)
+  }
+
+  const removeRecord = (recordId) => {
+    setRecords((current) => deleteRecord(current, recordId))
+  }
+
   const saveEntry = (event) => {
     event.preventDefault()
     if (!generatedRecord?.title.trim() || !generatedRecord?.category.trim() || !generatedRecord?.steps.trim()) return
 
-    setRecords((current) => [
-      {
-        id: `rec-${Date.now()}`,
-        title: generatedRecord.title.trim(),
-        category: generatedRecord.category.trim(),
-        date: 'Oct 30, 2026',
-        status: generatedRecord.status,
-        steps: generatedRecord.steps.trim(),
-      },
-      ...current,
-    ])
+    const record = {
+      id: editingRecordId || `rec-${Date.now()}`,
+      title: generatedRecord.title.trim(),
+      category: generatedRecord.category.trim(),
+      date: editingRecordId
+        ? records.find((item) => item.id === editingRecordId)?.date || 'Oct 30, 2026'
+        : 'Oct 30, 2026',
+      status: generatedRecord.status,
+      steps: generatedRecord.steps.trim(),
+      learnings: generatedRecord.learnings?.trim() || '',
+    }
+
+    setRecords((current) =>
+      editingRecordId ? updateRecord(current, record) : [record, ...current],
+    )
     cancelEntry()
   }
 
@@ -285,6 +317,8 @@ function App() {
                       ? 'Simulated empty view. Click “New Entry” to add a record or restore entries.'
                       : 'No practical work logs match your filter criteria or search query.'
                   }
+                  onEdit={editRecord}
+                  onDelete={removeRecord}
                 />
               </div>
             </section>
@@ -300,6 +334,8 @@ function App() {
                 <RecordList
                   records={filteredRecords}
                   emptyMessage="No practical work logs match your search."
+                  onEdit={editRecord}
+                  onDelete={removeRecord}
                 />
               </div>
             </section>
