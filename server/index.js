@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+const recordRoutes = require("./routes/recordRoutes");
+
 const app = express();
 
 app.use(cors({
@@ -10,10 +12,27 @@ app.use(cors({
 
 app.use(express.json());
 
+app.use("/api", recordRoutes);
+
 app.get("/api/health", (req, res) => {
     res.json({
         success: true,
         message: "LabLedger backend is running"
+    });
+});
+
+app.use((error, req, res, next) => {
+    if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
+        return res.status(400).json({
+            success: false,
+            message: "Request body must contain valid JSON."
+        });
+    }
+
+    console.error("Unhandled server error:", error);
+    return res.status(500).json({
+        success: false,
+        message: "The server encountered an unexpected error."
     });
 });
 

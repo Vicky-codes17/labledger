@@ -22,6 +22,8 @@ import './App.css'
 import { clearRecords, deleteRecord, loadRecords, saveRecords, updateRecord } from './storage'
 import { downloadMarkdown, downloadRecordsJson } from './exportMarkdown'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 const initialRecords = [
   {
     id: 'rec-1',
@@ -104,9 +106,9 @@ function App() {
   const [emptyState, setEmptyState] = useState(false)
   const [entryModalOpen, setEntryModalOpen] = useState(false)
   const [description, setDescription] = useState('')
-  const [entryCategory, setEntryCategory] = useState('')
   const [generatedRecord, setGeneratedRecord] = useState(null)
   const [editingRecordId, setEditingRecordId] = useState(null)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [detailRecord, setDetailRecord] = useState(null)
   const [historySearch, setHistorySearch] = useState('')
   const [historyCategory, setHistoryCategory] = useState('All')
@@ -159,46 +161,67 @@ function App() {
   }
 
   const cancelEntry = () => {
+    setIsGenerating(false)
     setEntryModalOpen(false)
     setDescription('')
-    setEntryCategory('')
     setGeneratedRecord(null)
     setEditingRecordId(null)
     setAppError('')
   }
 
-  const buildStructuredRecord = (text, category) => {
-    const lowerText = text.toLowerCase()
-    const detectedCategory =
-      category ||
-      (lowerText.match(/\b(git|linux|aws|react|python|docker|kubernetes|javascript|database)\b/i)?.[1] ||
-        'General')
-    const lines = text.split(/[.!?\n]+/).map((line) => line.trim()).filter(Boolean)
-    const findLines = (keywords, fallback) =>
-      lines.filter((line) => keywords.some((keyword) => line.toLowerCase().includes(keyword))).join('. ') || fallback
-
-    return {
-      title: lines[0]?.slice(0, 60) || 'Practical Work Entry',
-      category: detectedCategory.charAt(0).toUpperCase() + detectedCategory.slice(1),
-      status: 'Completed',
-      tasks: findLines(['built', 'created', 'configured', 'implemented', 'setup', 'set up', 'completed'], text),
-      commands: findLines(['command', 'npm ', 'git ', 'docker ', 'kubectl ', 'sudo ', 'ssh '], 'No commands identified.'),
-      errors: findLines(['error', 'issue', 'failed', 'bug', 'problem'], 'No errors identified.'),
-      solutions: findLines(['fixed', 'solved', 'resolved', 'solution', 'changed', 'updated'], 'No solutions identified.'),
-      learnings: findLines(['learned', 'learning', 'understood', 'realized', 'takeaway'], 'Add the key learning or takeaway from this work.'),
-      nextSteps: findLines(['next', 'later', 'todo', 'remaining', 'will '], 'Add the next step for this work.'),
-      steps: text,
-    }
-  }
-
-  const generateRecord = (event) => {
+  const generateRecord = async (event) => {
     event.preventDefault()
     if (!description.trim()) {
       setAppError('Add a work description before generating a record.')
       return
     }
 
-    setGeneratedRecord(buildStructuredRecord(description.trim(), entryCategory.trim()))
+    setAppError('')
+    setIsGenerating(true)
+
+    try {
+      const response = await fetch(`${API_URL}/api/generate-record`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: description.trim() }),
+      })
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok || !data?.record) {
+        throw new Error(data?.message || `Record generation failed with status ${response.status}.`)
+      }
+
+      const record = data.record
+      setGeneratedRecord({
+        title: record.title || 'Practical Work Entry',
+        category: record.category || 'General',
+        status: record.status || 'Completed',
+        steps: record.description || description.trim(),
+        tasks: Array.isArray(record.tasks) ? record.tasks.join('\n') : record.tasks || description.trim(),
+        commands: [
+          ...(Array.isArray(record.commandsUsed) ? record.commandsUsed : []),
+          ...(Array.isArray(record.suggestedCommands) && record.suggestedCommands.length
+            ? [`Suggested:\n${record.suggestedCommands.join('\n')}`]
+            : []),
+        ].join('\n'),
+        errors: record.error || '',
+        solutions: record.solution || '',
+        learnings: record.learning || '',
+        nextSteps: record.nextStep || '',
+      })
+
+      if (data.fallback) {
+        setAppError(data.message || 'A local record was generated because Gemini is temporarily unavailable.')
+      }
+    } catch (error) {
+      setAppError(
+        error instanceof TypeError
+          ? 'Could not reach the LabLedger server. Make sure the backend is running on port 5000.'
+          : error.message,
+      )
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const updateGeneratedRecord = (field, value) => {
@@ -540,9 +563,9 @@ function App() {
                 </label>
                 <div className="modal-actions">
                   <button className="secondary-button" type="button" onClick={cancelEntry}>Cancel</button>
-                  <button className="new-entry-button" type="submit" disabled={!description.trim()}>
-                    <SparkleIcon />
-                    <span>Generate Record</span>
+                  <button className="new-entry-button" type="submit" disabled={!description.trim() || isGenerating}>
+                    {isGenerating ? <span className="loading-spinner" aria-hidden="true" /> : <SparkleIcon />}
+                    <span>{isGenerating ? 'Generating record...' : 'Generate Record'}</span>
                   </button>
                 </div>
               </form>
