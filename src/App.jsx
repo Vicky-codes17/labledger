@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Check,
+  Download,
   FileText,
   History,
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react'
 import './App.css'
 import { deleteRecord, loadRecords, saveRecords, updateRecord } from './storage'
+import { downloadMarkdown, downloadRecordsJson } from './exportMarkdown'
 
 const initialRecords = [
   {
@@ -49,7 +51,7 @@ const navigation = [
   { label: 'Settings', icon: Settings },
 ]
 
-function RecordList({ records, emptyMessage, onEdit, onDelete }) {
+function RecordList({ records, emptyMessage, onEdit, onDelete, onView }) {
   if (records.length === 0) {
     return (
       <div className="empty-state">
@@ -79,6 +81,7 @@ function RecordList({ records, emptyMessage, onEdit, onDelete }) {
           <span>{record.category}</span>
           <span>{record.date}</span>
           <div className="record-actions">
+            <button type="button" onClick={() => onView(record)}>View</button>
             <button type="button" onClick={() => onEdit(record)}>Edit</button>
             <button type="button" onClick={() => onDelete(record.id)}>Delete</button>
           </div>
@@ -100,6 +103,9 @@ function App() {
   const [entryCategory, setEntryCategory] = useState('')
   const [generatedRecord, setGeneratedRecord] = useState(null)
   const [editingRecordId, setEditingRecordId] = useState(null)
+  const [detailRecord, setDetailRecord] = useState(null)
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyCategory, setHistoryCategory] = useState('All')
 
   useEffect(() => {
     saveRecords(records)
@@ -121,6 +127,17 @@ function App() {
     return matchesSearch && matchesCategory && !emptyState
   })
 
+  const historyRecords = records.filter((record) => {
+    const query = historySearch.toLowerCase()
+    const matchesSearch =
+      record.title.toLowerCase().includes(query) ||
+      record.category.toLowerCase().includes(query) ||
+      record.steps.toLowerCase().includes(query)
+    const matchesCategory = historyCategory === 'All' || record.category === historyCategory
+
+    return matchesSearch && matchesCategory
+  })
+
   const openEntryModal = () => {
     setEntryModalOpen(true)
     setGeneratedRecord(null)
@@ -135,17 +152,35 @@ function App() {
     setEditingRecordId(null)
   }
 
+  const buildStructuredRecord = (text, category) => {
+    const lowerText = text.toLowerCase()
+    const detectedCategory =
+      category ||
+      (lowerText.match(/\b(git|linux|aws|react|python|docker|kubernetes|javascript|database)\b/i)?.[1] ||
+        'General')
+    const lines = text.split(/[.!?\n]+/).map((line) => line.trim()).filter(Boolean)
+    const findLines = (keywords, fallback) =>
+      lines.filter((line) => keywords.some((keyword) => line.toLowerCase().includes(keyword))).join('. ') || fallback
+
+    return {
+      title: lines[0]?.slice(0, 60) || 'Practical Work Entry',
+      category: detectedCategory.charAt(0).toUpperCase() + detectedCategory.slice(1),
+      status: 'Completed',
+      tasks: findLines(['built', 'created', 'configured', 'implemented', 'setup', 'set up', 'completed'], text),
+      commands: findLines(['command', 'npm ', 'git ', 'docker ', 'kubectl ', 'sudo ', 'ssh '], 'No commands identified.'),
+      errors: findLines(['error', 'issue', 'failed', 'bug', 'problem'], 'No errors identified.'),
+      solutions: findLines(['fixed', 'solved', 'resolved', 'solution', 'changed', 'updated'], 'No solutions identified.'),
+      learnings: findLines(['learned', 'learning', 'understood', 'realized', 'takeaway'], 'Add the key learning or takeaway from this work.'),
+      nextSteps: findLines(['next', 'later', 'todo', 'remaining', 'will '], 'Add the next step for this work.'),
+      steps: text,
+    }
+  }
+
   const generateRecord = (event) => {
     event.preventDefault()
     if (!description.trim() || !entryCategory.trim()) return
 
-    setGeneratedRecord({
-      title: description.trim().split(/[.!?]/)[0].slice(0, 60) || 'Practical Work Entry',
-      category: entryCategory.trim(),
-      status: 'Completed',
-      steps: description.trim(),
-      learnings: 'Add the key learning or takeaway from this work.',
-    })
+    setGeneratedRecord(buildStructuredRecord(description.trim(), entryCategory.trim()))
   }
 
   const updateGeneratedRecord = (field, value) => {
@@ -153,12 +188,18 @@ function App() {
   }
 
   const editRecord = (record) => {
+    setDetailRecord(null)
     setGeneratedRecord({
       title: record.title,
       category: record.category,
       status: record.status,
       steps: record.steps,
       learnings: record.learnings || '',
+      tasks: record.tasks || record.steps,
+      commands: record.commands || '',
+      errors: record.errors || '',
+      solutions: record.solutions || '',
+      nextSteps: record.nextSteps || '',
     })
     setEditingRecordId(record.id)
     setEntryModalOpen(true)
@@ -182,6 +223,11 @@ function App() {
       status: generatedRecord.status,
       steps: generatedRecord.steps.trim(),
       learnings: generatedRecord.learnings?.trim() || '',
+      tasks: generatedRecord.tasks?.trim() || '',
+      commands: generatedRecord.commands?.trim() || '',
+      errors: generatedRecord.errors?.trim() || '',
+      solutions: generatedRecord.solutions?.trim() || '',
+      nextSteps: generatedRecord.nextSteps?.trim() || '',
     }
 
     setRecords((current) =>
@@ -319,6 +365,7 @@ function App() {
                   }
                   onEdit={editRecord}
                   onDelete={removeRecord}
+                  onView={setDetailRecord}
                 />
               </div>
             </section>
@@ -330,12 +377,40 @@ function App() {
                 <h2>Journal History</h2>
                 <p>Review your past practical entries.</p>
               </div>
+              <div className="history-toolbar">
+                <label className="history-search">
+                  <Search size={16} />
+                  <input
+                    type="search"
+                    placeholder="Search history..."
+                    aria-label="Search history"
+                    value={historySearch}
+                    onChange={(event) => setHistorySearch(event.target.value)}
+                  />
+                </label>
+                <select
+                  aria-label="Filter history by category"
+                  value={historyCategory}
+                  onChange={(event) => setHistoryCategory(event.target.value)}
+                >
+                  <option value="All">All Categories</option>
+                  {[...new Set(records.map((record) => record.category))].map((item) => (
+                    <option value={item} key={item}>{item}</option>
+                  ))}
+                </select>
+                <span className="history-count">{historyRecords.length} entries</span>
+                <button className="secondary-button" type="button" onClick={() => downloadRecordsJson(records)}>
+                  <Download size={14} />
+                  Export JSON
+                </button>
+              </div>
               <div className="records-container">
                 <RecordList
-                  records={filteredRecords}
+                  records={historyRecords}
                   emptyMessage="No practical work logs match your search."
                   onEdit={editRecord}
                   onDelete={removeRecord}
+                  onView={setDetailRecord}
                 />
               </div>
             </section>
@@ -387,6 +462,7 @@ function App() {
               <form className="modal-form" onSubmit={generateRecord}>
                 <label>
                   Work description
+                  <span className="field-hint">Speak with your dictation tool or type what you built, the commands used, errors, fixes, and what you learned.</span>
                   <textarea
                     rows="6"
                     placeholder="Describe what you built, configured, or debugged..."
@@ -395,19 +471,9 @@ function App() {
                     required
                   />
                 </label>
-                <label>
-                  Category
-                  <input
-                    type="text"
-                    placeholder="e.g. Git, Linux, AWS"
-                    value={entryCategory}
-                    onChange={(event) => setEntryCategory(event.target.value)}
-                    required
-                  />
-                </label>
                 <div className="modal-actions">
                   <button className="secondary-button" type="button" onClick={cancelEntry}>Cancel</button>
-                  <button className="new-entry-button" type="submit">
+                  <button className="new-entry-button" type="submit" disabled={!description.trim()}>
                     <SparkleIcon />
                     <span>Generate Record</span>
                   </button>
@@ -445,20 +511,52 @@ function App() {
                     </select>
                   </label>
                   <label>
-                    Steps and observations
+                    Tasks
                     <textarea
                       rows="4"
-                      value={generatedRecord.steps}
-                      onChange={(event) => updateGeneratedRecord('steps', event.target.value)}
+                      value={generatedRecord.tasks}
+                      onChange={(event) => updateGeneratedRecord('tasks', event.target.value)}
                       required
                     />
                   </label>
                   <label>
-                    Key learnings
+                    Commands
+                    <textarea
+                      rows="3"
+                      value={generatedRecord.commands}
+                      onChange={(event) => updateGeneratedRecord('commands', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Errors
+                    <textarea
+                      rows="3"
+                      value={generatedRecord.errors}
+                      onChange={(event) => updateGeneratedRecord('errors', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Solutions
+                    <textarea
+                      rows="3"
+                      value={generatedRecord.solutions}
+                      onChange={(event) => updateGeneratedRecord('solutions', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Learning outcomes
                     <textarea
                       rows="3"
                       value={generatedRecord.learnings}
                       onChange={(event) => updateGeneratedRecord('learnings', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Next steps
+                    <textarea
+                      rows="3"
+                      value={generatedRecord.nextSteps}
+                      onChange={(event) => updateGeneratedRecord('nextSteps', event.target.value)}
                     />
                   </label>
                 </div>
@@ -471,8 +569,57 @@ function App() {
                 </div>
               </form>
             )}
+
           </div>
         </div>
+      )}
+
+      {detailRecord && (
+              <div className="modal-backdrop" role="presentation">
+                <div className="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+                  <div className="modal-header">
+                    <div>
+                      <div className="detail-badges">
+                        <span className="detail-category">{detailRecord.category}</span>
+                        <span className={`status status-${detailRecord.status === 'Completed' ? 'complete' : 'progress'}`}>
+                          {detailRecord.status}
+                        </span>
+                      </div>
+                      <h2 id="detail-title">{detailRecord.title}</h2>
+                      <p>{detailRecord.date}</p>
+                    </div>
+                    <button className="modal-close" type="button" aria-label="Close details" onClick={() => setDetailRecord(null)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="detail-content">
+                    <div className="detail-block">
+                      <h3>Steps and observations</h3>
+                      <p>{detailRecord.steps}</p>
+                    </div>
+                    {detailRecord.learnings && (
+                      <div className="detail-block detail-learnings">
+                        <h3>Key learnings</h3>
+                        <p>{detailRecord.learnings}</p>
+                      </div>
+                    )}
+                    <div className="detail-actions">
+                      <button className="secondary-button" type="button" onClick={() => setDetailRecord(null)}>Close</button>
+                      <button className="secondary-button" type="button" onClick={() => downloadMarkdown(detailRecord)}>
+                        <Download size={14} />
+                        Export Markdown
+                      </button>
+                      <button className="new-entry-button" type="button" onClick={() => {
+                        setDetailRecord(null)
+                        editRecord(detailRecord)
+                      }}>
+                        <Check size={16} />
+                        <span>Edit Entry</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
       )}
     </div>
   )
