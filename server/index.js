@@ -7,7 +7,9 @@ const recordRoutes = require("./routes/recordRoutes");
 const app = express();
 
 app.use(cors({
-    origin: "*",
+    origin: ["*",
+        "https://labledger-backend-yg9e.onrender.com"
+    ],
 }));
 
 app.use(express.json());
