@@ -8,7 +8,8 @@ const app = express();
 
 app.use(cors({
     origin: ["*",
-        "https://labledger-backend-yg9e.onrender.com"
+        "https://labledger-backend-yg9e.onrender.com",
+        "https://labledger-phi.vercel.app/"
     ],
 }));
 
