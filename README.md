@@ -4,6 +4,10 @@
 
 LabLedger is a voice-friendly practical-work documentation tool that helps students and developers turn their daily technical work into structured learning records.
 
+## Live Demo
+
+🚀 **Try LabLedger:** https://labledger-phi.vercel.app
+
 Describe what you worked on using text or voice dictation. LabLedger uses Gemini AI to organize your description into tasks, commands, errors, solutions, learning outcomes, and next steps.
 
 ## Features
